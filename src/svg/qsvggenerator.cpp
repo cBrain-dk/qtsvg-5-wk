@@ -1006,6 +1006,9 @@ void QSvgPaintEngine::drawEllipse(const QRectF &r)
 {
     Q_D(QSvgPaintEngine);
 
+    if (d->clip && !d->matrix.mapRect(r).intersects(d->viewBox)) return;
+    d->emitState();
+    
     const bool isCircle = r.width() == r.height();
     *d->stream << '<' << (isCircle ? "circle" : "ellipse");
     if (state->pen().isCosmetic())
@@ -1099,6 +1102,16 @@ void QSvgPaintEngine::drawRects(const QRectF *rects, int rectCount)
 {
     Q_D(QSvgPaintEngine);
 
+    if (d->clip) {
+        bool anyIntersects = false;
+        for (int i=0; i < rectCount; ++i) {
+            const QRectF &rect = rects[i];
+            anyIntersects |= d->matrix.mapRect(rect).intersects(d->viewBox);
+        }
+        if (!anyIntersects) return;
+    }
+    d->emitState();
+    
     for (int i=0; i < rectCount; ++i) {
         const QRectF &rect = rects[i];
         *d->stream << "<rect";
